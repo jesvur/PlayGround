@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YASUO: The Forgotten Realm — A League-Inspired Open World Action RPG</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game-root">
+  <canvas id="game-canvas"></canvas>
+  <!-- CRT / PS2 overlays -->
+  <div id="scanlines"></div>
+  <div id="vignette"></div>
+  <div id="damage-flash"></div>
+  <div id="heal-flash"></div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="hud-topleft">
+      <div id="player-plate">
+        <div class="plate-top">
+          <div id="portrait-wrap"><canvas id="portrait" width="56" height="56"></canvas><span id="level-badge">1</span></div>
+          <div class="plate-bars">
+            <div id="player-name">YASUO <span id="player-level">LV 1</span></div>
+            <div class="bar hp"><div id="hp-fill"></div><span id="hp-text"></span></div>
+            <div class="bar st"><div id="st-fill"></div></div>
+            <div class="bar flow" title="Flow — Way of the Wanderer"><div id="flow-fill"></div></div>
+          </div>
+        </div>
+        <div class="bar xp"><div id="xp-fill"></div></div>
+        <div id="flask-row">
+          <span id="flasks">⚱ × 3</span>
+          <span id="gold">◈ 0</span>
+          <span id="q-stack">Q ○○</span>
+        </div>
+      </div>
+    </div>
+    <div id="hud-topright">
+      <canvas id="minimap" width="140" height="140"></canvas>
+      <div id="location-name">FORGOTTEN IONIA</div>
+    </div>
+    <div id="boss-bar-wrap" class="hidden">
+      <div id="boss-name">YONE — THE UNFORGOTTEN</div>
+      <div id="boss-phase-pips">◆ ◆ ◆</div>
+      <div id="boss-bar"><div id="boss-fill"></div><div id="boss-ghost"></div></div>
+    </div>
+    <div id="ability-bar">
+      <div class="ab" id="ab-q"><b>Q</b><span>Tempest</span><div class="cd"></div></div>
+      <div class="ab" id="ab-w"><b>C</b><span>Wind Wall</span><div class="cd"></div></div>
+      <div class="ab" id="ab-e"><b>E</b><span>Sweep</span><div class="cd"></div></div>
+      <div class="ab" id="ab-r"><b>R</b><span>Last Breath</span><div class="cd"></div></div>
+      <div class="ab" id="ab-f"><b>F</b><span>Flask</span><div class="cd"></div></div>
+    </div>
+    <div id="combo-counter" class="hidden">3 HITS</div>
+    <div id="interact-prompt" class="hidden">[ E ] Touch Shrine</div>
+    <div id="subtitle"></div>
+    <div id="toast-wrap"></div>
+    <div id="boss-intro-card" class="hidden">
+      <div class="boss-kanji">忘れられた</div>
+      <div class="boss-title">YONE</div>
+      <div class="boss-sub">THE UNFORGOTTEN BLADE</div>
+    </div>
+  </div>
+
+  <!-- Title screen -->
+  <div id="title-screen">
+    <div class="title-fog"></div>
+    <div class="title-inner">
+      <div class="title-kicker">A LEAGUE-INSPIRED OPEN-WORLD ACTION RPG</div>
+      <h1 class="game-title">YASUO<span>THE FORGOTTEN REALM</span></h1>
+      <div class="title-desc">Ionia has fallen to shadow. Shrines gone cold. Your brother waits in the ruined temple.<br>Steel, wind, and death — learn his patterns, or die forgotten.</div>
+      <div class="controls-grid">
+        <div><b>WASD</b> move</div><div><b>Mouse drag / wheel</b> camera (zoom, [ ] sens.)</div>
+        <div><b>LMB / J</b> light attack</div><div><b>RMB / K</b> heavy attack (hold = charged)</div>
+        <div><b>Q</b> Steel Tempest</div><div><b>C</b> Wind Wall</div>
+        <div><b>E</b> Sweeping Blade / interact</div><div><b>R</b> Last Breath (vs airborne)</div>
+        <div><b>Space</b> jump</div><div><b>Shift</b> sprint · <b>Alt/Ctrl or V</b> dodge roll</div>
+        <div><b>Tab</b> lock-on</div><div><b>F</b> healing flask · <b>M</b> mute</div>
+      </div>
+      <button id="btn-start" class="big-btn">⚔ &nbsp;BEGIN THE WANDERER'S PATH&nbsp; ⚔</button>
+      <button id="btn-continue" class="ghost-btn hidden">Continue (Lv <span id="save-lv"></span>)</button>
+      <div class="title-foot">PS2-ERA RETRO BUILD · headphones recommended · click canvas to lock mouse for camera</div>
+      <div id="load-error" class="hidden"></div>
+    </div>
+  </div>
+
+  <!-- Death screen -->
+  <div id="death-screen" class="hidden">
+    <div class="death-inner">
+      <h1>YOU DIED</h1>
+      <p id="death-cause">Cut down by Yone.</p>
+      <button id="btn-respawn" class="big-btn">RESPAWN AT SHRINE</button>
+    </div>
+  </div>
+
+  <!-- Victory screen -->
+  <div id="victory-screen" class="hidden">
+    <div class="victory-inner">
+      <div class="title-kicker">LEGENDARY BOSS FELLED</div>
+      <h1>YONE HAS FALLEN</h1>
+      <p id="victory-text"></p>
+      <div id="victory-rewards"></div>
+      <button id="btn-keep-exploring" class="big-btn">KEEP EXPLORING IONIA</button>
+    </div>
+  </div>
+
+  <!-- Pause / help -->
+  <div id="pause-screen" class="hidden">
+    <div class="pause-inner">
+      <h2>PAUSED — WANDERER'S REST</h2>
+      <div id="stat-sheet"></div>
+      <div class="pause-controls">WASD move · LMB/J light · RMB/K heavy · Q/C/E/R abilities · Space jump · V dodge · Tab lock-on · F flask · P/Esc pause</div>
+      <button id="btn-resume" class="big-btn">RESUME</button>
+      <button id="btn-wipe" class="ghost-btn">Erase save</button>
+    </div>
+  </div>
+</div>
+<script type="module" src="game.js"></script>
+<script>
+// Boot watchdog (classic script: runs even if the module/CDN fails).
+// If the game engine hasn't booted in 10s, tell the user exactly why.
+setTimeout(function () {
+  if (window.__game) return;
+  var el = document.getElementById('load-error');
+  if (!el) return;
+  el.classList.remove('hidden');
+  el.textContent = 'Still loading… Most common causes: (1) this file was opened via file:// — ' +
+    'serve the folder over http instead (run ./start.sh, then open the shown URL); ' +
+    '(2) no internet to fetch the Three.js CDN fallback; (3) WebGL disabled — use a desktop Chrome/Edge/Firefox with hardware acceleration.';
+}, 10000);
+</script>
+</body>
+</html>
